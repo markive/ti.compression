@@ -8,7 +8,7 @@ description: Lets you zip and unzip files.
 author: Dawson Toth
 license: Apache License, Version 2.0
 copyright: Copyright (c) 2010-2016 by Appcelerator, Inc.
-architectures: armeabi-v7a x86
+architectures: armeabi armeabi-v7a x86
 
 # these should not be edited
 name: compression
