@@ -81,6 +81,25 @@
 	return source;
 }
 
+-(NSArray*)getNormalizedPaths:(NSArray*)source
+{
+    // NOTE: File paths may contain URL prefix as of release 1.7 of the SDK
+    NSMutableArray *sourceUpdate = [source mutableCopy];
+	NSUInteger count = [source count];
+    for (NSUInteger i = 0; i < count; i++) {
+        // do something with object
+		NSString *fileName = [source objectAtIndex: i];
+        NSLog(@"[INFO] file [%@]", fileName);
+        if ([fileName hasPrefix:@"file:/"]) {
+            NSURL* url = [NSURL URLWithString:fileName];
+            NSLog(@"[INFO] url [%@]", [url path]);
+            sourceUpdate[i] = [url path];
+        }
+    }
+    
+    return [NSArray arrayWithArray:sourceUpdate];
+}
+
 #pragma mark Public APIs
 
 -(id)unzip:(id)args
@@ -88,7 +107,6 @@
 	// unzip API requires 3 parameters:
 	//   location:string - folder location to unzip the files
 	//   filename:string - path to the zip file
-	//   overwrite:bool  - indicates if existing files should be overwritten
 
 	enum unzipArgs {
 		kUnzipArgLocation  = 0,
@@ -160,7 +178,7 @@ static const int kAutoReleaseInterval = 100;
 
 	enum zipArgs {
 		kZipArgFileName  = 0,
-		kZipArgFilePath = 1,
+		kZipArgFileArray = 1,
 		kZipArgCount
 	};
 	
@@ -170,16 +188,16 @@ static const int kAutoReleaseInterval = 100;
 	NSString* msg = @"";
 	
 	// Get and validate the zip file name
-	NSString* zipFileNameIn = [args objectAtIndex:kZipArgFileName];
-	NSString* zipFileName = [self getNormalizedPath:zipFileNameIn];
-	if (zipFileName == nil) {
-		msg = [NSString stringWithFormat:@"Invalid archive file name [%@]", zipFileNameIn];
+	NSArray* zipFileArrayIn = [args objectAtIndex:kZipArgFileArray];
+	NSArray* zipFileArray = [self getNormalizedPaths:zipFileArrayIn];
+	if (zipFileArray == nil) {
+		msg = [NSString stringWithFormat:@"Invalid archive file name [%@]", zipFileArrayIn];
 		NSLog(@"[ERROR] %@", msg);
 		return msg;
 	}
     
     // Get and validate the zip file name
-   NSString* _directoryPath = [args objectAtIndex:kZipArgFilePath];
+   NSString* _directoryPath = [args objectAtIndex:kZipArgFileName];
     NSString* directoryPath = [self getNormalizedPath:_directoryPath];
     if (directoryPath == nil) {
         msg = [NSString stringWithFormat:@"Invalid archive file name [%@]", directoryPath];
@@ -189,19 +207,14 @@ static const int kAutoReleaseInterval = 100;
 	
 	
     BOOL success = [SSZipArchive createZipFileAtPath:directoryPath
-                             withContentsOfDirectory:zipFileName
-                                 keepParentDirectory:NO
-                                    compressionLevel:-1
-                                            password:nil
-                                                 AES:NO
-                                     progressHandler:nil];
+                             withFilesAtPaths:zipFileArray];
     
     if (success) {
-        NSLog(@"[INFO] Archive file created", zipFileName);
+        NSLog(@"[INFO] Archive file created", directoryPath);
         msg = @"success";
         
     } else {
-        msg = [NSString stringWithFormat:@"Unable to create archive file [%@]", zipFileName];
+        msg = [NSString stringWithFormat:@"Unable to create archive file [%@]", directoryPath];
         NSLog(@"[ERROR] %@", msg);
     }
     
